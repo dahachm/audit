@@ -20,15 +20,22 @@
     
     ![aureport -au](https://user-images.githubusercontent.com/40645030/119327376-91f28c00-bc8b-11eb-81a0-3fb561889fdf.png)
 
-3) События запуска системы 
+3) События выключения и запуска системы
+    
+    ```
+    $ sudo ausearch -i -m system_boot,system_shutdown
+    ```
+    Ниже предсиавлен пример вывода записей о событиях выключения и запуска системы в течение одних суток:
+    
+    ![system_down_boot](https://user-images.githubusercontent.com/40645030/119345196-39c68480-bca1-11eb-8c70-dcc6e44956fb.png)
+
    
-   Добавление правил аудита событий перезагрузки системы:
-   
-   ```
-   -w /sbin/shutdown -p x -k power
-   -w /sbin/poweroff -p x -k power
-   -w /sbin/reboot -p x -k power
-   -w /sbin/halt -p x -k power
-   ```
-   
-5) 
+## 2. Регистрация событий запуска и завершения программ
+    
+Можно получить список все программ, которые были запущены в течение суток:
+
+```
+$ sudo aureport -x -ts 24.05.2021 00:00:00 -te 25.05.2021 00:00:00 | awk 'NR > 5 {print $4}' | sort | uniq
+```
+
+![aureport -x](https://user-images.githubusercontent.com/40645030/119349358-c3c51c00-bca6-11eb-9203-86819002f6b5.png)
