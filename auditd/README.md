@@ -32,10 +32,50 @@
    
 ## 2. Регистрация событий запуска и завершения программ
     
-Можно получить список все программ, которые были запущены в течение суток:
+В файл */etc/audit/rules.d/audit.rules* добавить строки:
+```
+-a exit,always -F arch=b64 -S execve -k start_process
+-a exit,always -F arch=b64 -S kill -k kill_process
+-a exit,always -F arch=b64 -S exit_group -k process
+```
+
+Перезапустить службу auditd:
+
+```
+$ sudo systemctl restart auditd
+```
+
+#### Можно получить список все программ, которые были запущены в течение суток:
 
 ```
 $ sudo aureport -x -ts 24.05.2021 00:00:00 -te 25.05.2021 00:00:00 | awk 'NR > 5 {print $4}' | sort | uniq
 ```
 
 ![aureport -x](https://user-images.githubusercontent.com/40645030/119349358-c3c51c00-bca6-11eb-9203-86819002f6b5.png)
+
+#### Поиск событий запуска определенной программы
+
+Например, поиск событий вызова программы из пакета **libreoffice**:
+
+```
+$ sudo ausearch -k start_process -c soffice.bin -i
+```
+
+На этом рисунке видим, что был открыт файл */home/admin-1/Без имени 2.odt* с помощью текстового редактора **Writer** из пакета **LibreOffice**:
+
+![вызова libreoffice](https://user-images.githubusercontent.com/40645030/119356677-61244e00-bcaf-11eb-8662-e1c51ff8a4e2.png)
+
+А здесь видим, что был открыт файл */home/admin-1/Документы/Аудит/123456.ods* с помощью редактора таблиц **Calc** из пакета **LibreOffice**:
+
+![вызова libreoffice 2](https://user-images.githubusercontent.com/40645030/119357172-ed367580-bcaf-11eb-8805-f1c6b821f469.png)
+
+#### Поиск событий запуска определенной программы определенным пользователем
+
+Например, поиск событий вызова утилиты **sudo** пользователем **admin-1** (uid == 1000):
+
+```
+$ sudo ausearch -k start_process -ui 1000 -c sudo  -i
+```
+
+![sudo uid 1000 ](https://user-images.githubusercontent.com/40645030/119358004-d6445300-bcb0-11eb-9662-611a3639ed57.png)
+
