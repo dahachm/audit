@@ -82,6 +82,7 @@
    
    ![sudo session](https://user-images.githubusercontent.com/40645030/119496694-6c897f00-bd6c-11eb-9bad-c271c9dd47bb.png)
 
+6) Регистрация событий запуска системы
 
 ## 2. Регистрация событий запуска и завершения программ
 
