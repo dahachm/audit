@@ -431,7 +431,7 @@ $ sudo systemctl restart rsyslog
 kern.* @@192.168.1.3:514
 ```
 
-### Категории в rsyslog
+#### Категории в rsyslog
 
 ![категории rsyslog](https://user-images.githubusercontent.com/40645030/119503483-b0cc4d80-bd73-11eb-8e6b-77a9adf8f6b5.png)
 
@@ -440,4 +440,46 @@ kern.* @@192.168.1.3:514
 ![уровни rsyslog](https://user-images.githubusercontent.com/40645030/119503506-b6299800-bd73-11eb-801c-0724db7988d8.png)
 
 #### Аудит определенного лог файла
+
+Можно настроить слежение за изменением определенного лог файла и передавать сообщения на сервер. 
+Для этого нужно настроить и сервер, и клиент.
+
+Например, зададим отслеживание событий уровня *info* в файле */var/log/audit/audit.log*.
+Все подходящие события будут отмечены категорией local6 и переданы на сервер удаленный сервер (192.168.1.3).
+
+**На клиенте** создать файл */etc/rsyslog.d/audit.conf* со следующим содержимым:
+
+```
+$ModLoad imfile
+$InputFileName /var/log/audit/audit.log
+$InputFileTag tag_audit_log:
+$InputFileStateFile audit_log
+$InputFileSeverity info
+$InputFileFacility local6
+$InputRunFileMonitor
+
+*.*   @@192.168.1.3:514
+```
+
+Перезапустить rsyslog:
+
+```
+$ sudo systemctl restart rsyslog
+```
+
+**На сервере** нужно задать новый шаблон для фильтрации входящих логов.
+
+В файл */etc/rsyslog.conf* добавить:
+
+```
+$template HostAudit, "/var/log/rsyslog/%HOSTNAME%/audit.log"
+local6.* ?HostAudit
+```
+Шаблон **HostAudit** указывает rsyslog, что входящие логи категории **local6** нужно сохранять в файле **/var/log/rsyslog/<имя компьютера, откуда пришел лог>/audit.log**.
+
+Перезапустить rsyslog:
+
+```
+$ sudo systemctl restart rsyslog
+```
 
