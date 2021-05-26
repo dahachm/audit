@@ -391,11 +391,14 @@ $ sudo ufw reload
 В файле конфигурации */etc/rsysog.conf* снять комментирование со следующих строк: 
 
 ```
-$ModLoad imudp
-$UDPServerRun 514
-
 $ModLoad imtcp
 $InputTCPServerRun 514
+```
+или могут быть такие:
+
+```
+module(load="imtcp")
+input(type="imtcp" port="514")
 ```
 
 Далее добавить с в конец */etc/rsyslog.conf*:
