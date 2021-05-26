@@ -403,7 +403,7 @@ $InputTCPServerRun 514
 ```
 $template RemoteLogs,"/var/log/rsyslog/%HOSTNAME%/%PROGRAMNAME%.log"
 *.* ?RemoteLogs
-& ~
+& stop
 ```
 
 Шаблон **RemoteLogs** принимает логи всех категорий, любого уровня и сохраняет в каталоге по маске **/var/log/rsyslog/<имя компьютера, откуда пришел лог>/<приложение, чей лог ришел>.log**. 
