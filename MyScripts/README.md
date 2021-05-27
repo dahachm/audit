@@ -71,11 +71,30 @@
    ```
    awk '/${time_filter}/ {out=1} /sshd/ && /sshd:auth/ && /authentication failure/ {if (out) print}' /var/log/auth.log
    ```
-   
-Срипт сохраняет собранные данные в отдельнй файл ***/home/$user/log/AUTH_${date}.log***. 
-Где **$user** - имя пользователя, от имени которого запущен скрипт, **$date** - значение времени с точностью до секунд, в которое сформирован отчет.
 
-Перед началом работы скрипта проверяет существование каталогая ***/home/$user/***.
+### Сохранение данных
+
+Срипт сохраняет собранные данные в отдельнй файл ***/home/$user/log/AUTH_${date}.log***. 
+Где **$user** - имя пользователя, от имени которого запущен скрипт, **$date** - значение времени с точностью до секунды, в которое сформирован отчет.
+
+```
+# Создание файла, куда будут писаться промежуточные результаты
+#
+
+admin=$(whoami)
+
+# Создание каталога для логов (если не существует)
+sudo mkdir -p /home/$admin/log
+
+# Формирование имени файло для записи логов (с указание времени создания)
+date=$(date +'%F_%X')
+logfile_name="/home/${admin}/logs/AUTH_${date}.log"
+
+# Создание ссылки на актуальный лог-файл
+ln -fs $logfile_name /home/admin-1/logs/AUTH_latest.log
+```
+
+Перед началом работы скрипт проверяет существование каталогая ***/home/$user/***.
 
 ### Автоматический запуск
 
@@ -109,4 +128,99 @@ then
 	time_filter="${date}" 
 ```
 
-Далее при поиске соотвествующих событий в каждую команду добавляется фильтр со строкой со значением времени регистрации (из переменоой ), начиная с котрого нужно проверять события. 
+Далее при поиске соотвествующих событий в каждую команду добавляется фильтр со строкой со значением времени регистрации (из переменой **$time_filter**), начиная с котрого нужно проверять события. 
+
+### Отправка уведомлений на рабочий стол
+
+Отдельный bash-скрипт занимается чтением сформированных файлов с логами (в каталоге **/home/user/log/**) и отправкой уведомлений на рабочий стол пользователя с помощью утилиты **notify-user**.
+
+Предыдущий скрипт для записи логов о событиях НСД каждый раз при формировании нового файла ***/home/$user/log/AUTH_${date}.log*** здесь же создаёт *soft link* на этот файл (с помощью команды **ln**) - ***/home/$user/log/AUTH_latest.log***.
+
+Скрипт отправки уведомлений читает данные из файла, на который указывает ссылка ***/home/$user/log/AUTH_latest.log***.
+В переменной **$line** - очередная строка из файла по ссылке **/home/$user/log/AUTH_latest.log***.
+
+1) Попытка выполнить команду, требующую повышенных привилегий, пользователем без sudo прав
+   
+   ```
+   if [[ "$line"  =~ 'user NOT in sudoers' ]];
+	then
+		user=$(echo $line | awk '{print $6}')
+		cmnd=$(echo $line | awk -F'COMMAND=' '{print $2}')
+		time=$(echo $line | awk '{printf("%s %s %s",$1,$2,$3)}')
+		command="notify-send 'Несанкционированная попытка повысить привилегии доступа' '[$time]: $user пытался вызвать команду "$cmnd" с привилегиями sudo.\nПодробнее в /home/$admin/AUTH_latest.log' -u critical -i security-log -t 3600000"
+		eval $command
+   fi
+   ```
+   
+   Пример отправленного уведомления:
+   
+   
+2) Неверный пароль при попытке вызова команды с sudo
+   
+   ```
+   if [[ "$line" =~ 'incorrect password attempts' ]]; 
+	then
+		user=$(echo $line | awk '{print $6}')
+		cmnd=$(echo $line | awk -F'COMMAND=' '{print $2}')
+		time=$(echo $line | awk '{printf("%s %s %s",$1,$2,$3)}')	
+		command="notify-send 'Неверный sudo пароль' '[$time]: $user пытался вызвать команду "$cmnd" с привилегиями sudo и неверно ввел sudo пароль 3 раза подряд.\nПодробнее в /home/$admin/AUTH_latest.log' -u critical -i security-log -t 3600000"
+		eval $command
+   fi
+   ```
+   
+   Пример отправленного уведомления:
+
+3) Ввод недействительного логина при попытке входа в систему (fly-dm)
+   
+   ```
+   if [[ "$line" =~ 'Unknown user' ]];
+	then
+		user=$(echo $line | awk -F'Unknown user ' '{print $2}')
+		time=$(echo $line | awk '{printf("%s %s %s",$1,$2,$3)}')
+		command="notify-send '[fly-dm]: Неизвестный пользователь' '[$time]: Неизвестный пользователь $user.\nПодробнее в /home/$admin/AUTH_latest.log' -u critical -i security-log -t 3600000"
+		eval $command
+   fi
+   ```
+   
+   Пример отправленного уведомления:
+   
+
+4) Вызов под su, ввод недействительного логина
+   
+   ```
+   if [[ "$line" =~ 'No passwd entry for user' ]];
+	then
+		user=$(echo $line | awk -F'No passwd entry for user ' '{print $2}')
+		time=$(echo $line | awk '{printf("%s %s %s",$1,$2,$3)}')
+		command="notify-send '[su]: Неизвестный пользователь' '[$time]: Неизвестный пользователь $user.\nПодробнее в /home/$admin/AUTH_latest.log' -u critical -i security-log -t 3600000"
+		eval $command
+   fi
+   ```
+   
+   Пример отправленного уведомления:
+
+5) Ввод неверного пароля (su, fly-dm, ssh)
+   
+   ```
+   if [[ "$line" =~ 'authentication failure' ]];
+	then
+		time=$(echo $line | awk '{printf("%s %s %s",$1,$2,$3)}')
+		prog_name=$(echo $line | awk '{print $5}')
+		user=$(echo $line | awk -F' user=' '{print $2}')
+		command="notify-send '$prog_name Неверный пароль' '[$time]: Неверный пароль для пользователя $user.\nПодробнее в /home/$admin/AUTH_latest.log' -u critical -i security-log -t 3600000"
+		eval $command
+   fi
+   ```
+   
+   Пример отправленного уведомления:
+
+
+После вывода всех сообщений о событиях НСД (если есть) показывается сообщение о том, что проервка логов завершена, с указанием времени завершения проверки.
+
+```
+cur_time=$(date +'%F %X')
+command="notify-send 'notify_auth.sh' '[${cur_time}]:  Проверка логов завершена (by $admin)' -u critical -i security-log -t 3600000"
+eval $command
+```
+
+Пример отправленного уведомления:
