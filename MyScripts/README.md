@@ -350,6 +350,14 @@ $ sudo getfaud /home/admin-1
    Перейти *fly-admin-smc -> Аудит* (Панель управления -> Безопасность -> Политика безопасности -> Аудит) и устнаовить следующие правила аудита:
 
    ![правила аудита прав доступа субъектов](https://user-images.githubusercontent.com/40645030/120148018-43e00a00-c1f0-11eb-81ec-03ec7ef84c1e.png)
+   
+   Для установки политики аудита событий изменения привилегий доступа отдельного файла или каталога можно воспользоваться утиилтой **setfaud** (подробнее о настройке политики аудита с помощью setfaud можно почитать [здесь](https://github.com/dahachm/audit/tree/main/rsyslog%26parlog#3-%D1%80%D0%B5%D0%B3%D0%B8%D1%81%D1%82%D1%80%D0%B0%D1%86%D0%B8%D1%8F-%D1%81%D0%BE%D0%B1%D1%8B%D1%82%D0%B8%D0%B9-%D0%B4%D0%BE%D1%81%D1%82%D1%83%D0%BF%D0%B0-%D0%BA-%D1%84%D0%B0%D0%B9%D0%BB%D0%B0%D0%BC).
+	 
+   Установка аудита событий *chmod, chown, acl* c gjvjom. *setfaud* на каталог */tmpdir*:
+   
+   ```
+   $ sudo setfaud o:dnr:dnr /tmpdir
+   ```
 	
    ### Формирование параметров поиска событий
 	
@@ -510,9 +518,38 @@ $ sudo getfaud /home/admin-1
   Поиск событий смены прав доступа к каталогу */home/admin-1/tmpdir*:
 	
   ```
-  $ task_3.sh -o /home/admin-1/tmpdir
+  $ task_3.sh -o \/tmpdir
   ```
   
+  ![Изменение прав доступа к каталогу](https://user-images.githubusercontent.com/40645030/120198864-4744b700-c22b-11eb-900a-307eb83ff149.png)
+  
+  ![CHMOD Изменение прав доступа к каталогу](https://user-images.githubusercontent.com/40645030/120198889-4c096b00-c22b-11eb-9a7b-7a89d1985b46.png)
+
+  ![CHOWN Изменение прав доступа к каталогу](https://user-images.githubusercontent.com/40645030/120198893-4d3a9800-c22b-11eb-88c5-9598e8600628.png)
+
+  Поиск событий смены привилегий и правил аудита для пользователя **guest**:
+  ```
+  $ task_3.sh -s guest
+  ```
+	
+  ![USER Изменение привилегий guest ](https://user-images.githubusercontent.com/40645030/120198901-4f045b80-c22b-11eb-8b67-b92ef2716e29.png)
+
+  Посмотреть, какие правила доступа к файлам устанавливал пользователь **root**:
+  
+  ```
+  $ task_3.sh -x root -o	
+  ```
+  
+  ![task_3 root установка прав доступа](https://user-images.githubusercontent.com/40645030/120203155-15821f00-c230-11eb-8c21-8e3d11389170.png)
+
+  Посмотреть, какие привилегии другим пользователям устанавливал пользователь **root**:
+	
+  ```
+  $ task_3.sh -x root -s
+  ```
+  
+  ![task_3 root установка привилегий](https://user-images.githubusercontent.com/40645030/120203441-65f97c80-c230-11eb-86ec-836a7f72590a.png)
+
   
   
    
