@@ -345,11 +345,151 @@ $ sudo getfaud /home/admin-1
  
 ## 3. Регистрация событий изменения полномочий субъектов и объектов доступа
 
-   Журнал:
+   ### Настройка политики аудита
 	
-   Команда поиска:
+   Перейти *fly-admin-smc -> Аудит* (Панель управления -> Безопасность -> Политика безопасности -> Аудит) и устнаовить следующие правила аудита:
 
-    
+   ![правила аудита прав доступа субъектов](https://user-images.githubusercontent.com/40645030/120148018-43e00a00-c1f0-11eb-81ec-03ec7ef84c1e.png)
+	
+   ### Формирование параметров поиска событий
+	
+   Этот [скрипт](task_3.sh) формирует фильтр для поиска подходящих событий с помощью **kernlog** и **userlog** в журналах **/var/log/parsec/kernel.mlog** и **/var/log/parsec/user.mlog**. Полученные результаты записываются в файл **/home/$player/log/PRIV_latest.log**, где переменная $player хранит значение имени пользователя, вызывающего скрипт.
 
-   ![Регистрация событий изменения привилегий](https://user-images.githubusercontent.com/40645030/119988852-313aba80-bfcf-11eb-9244-65756cdfda5d.png)
+   **По умолчанию скрипт ищет события в двух журналах для всех подходящих ивентов.**
+	
+   Список подходящих ивентов в журнале **/var/log/parsec/kernel.mlog**:
+   
+   ```
+   kernel_events=('chmod' 'chown' 'setuid' 'setfsuid' 'setreuid' 'setresuid' 'setgid' 'setfsgid' 'setregid' 'setresgid' 'capset' 'chroot' 'setacl' 'removeacl' 'parsec_chmac' 'parsec_setaud' 'parsec_setmac' 'parsec_chmac' 'parsec_capset' 'parsec_chaud' 'parsec_fchaud') 
+   ```
+   
+   Список подходящих ивентов в журнале **/var/log/parsec/user.mlog**:
+	
+   ```
+   user_events=('cups' 'useraud' 'usercaps' 'usermac' 'usermic' 'udevrule' 'udevdevice')
+   ```
+	
+   При запуске скрипта можно передать аргументы, уточняющие фильтры дял поиска событий.
+   
+   Принимаются следующие параметры:
+	
+   - -t <range> - ременной диапазон в ормате <от даты>[-до даты]. Где формат даты: %y[%m[%d[%H[%M[%S]]]]]
+   - -x <uid> - имя/uid пользователя-владельца или администратора
+   - -e <event> - операция (event)
+   - -s [<username>] - имя субъекта, полномочия которого изменили
+   - -o [<filename>]- имя каталога/документа (объект)
+ 
+   Могут быть указаны только флаги **-s** или **-o** без имени пользователя или имени каталога для того, чтобы указать скрипты, по какому журналу вести поиск.
+   
+   ```
+   # Если переменная subject равна нулю, то поиск по журналу user.mlog (события изменения полномочий субъектов доступа) не производится
+   subject=0
+   object=0
 
+   # Формирвание фильтров для поиска по журналам
+   for key in ${!args[*]}; do
+
+	if [[ "$key" == "-s" ]]; 
+	then
+		subject=1
+		user=${args[$key]}
+
+	fi
+
+	if [[ "$key" == "-o" ]];
+	then
+		object=1
+		file_name=${args[$key]}
+	fi
+
+	if [[ "$key" == "-e" ]];
+	then
+		event="${args[$key]}"
+		if [[ $event =~ ^(cups|useraud|usercaps|usermac|usermic|udevrule|udevdevice)$ ]];
+		then
+			user_event="${key} ${event}"
+		fi
+		if [[ $event =~     ^(chmod|chown|setuid|setfsuid|setreuid|setresuid|setgid|setfsgid|setregid|setresgid|capset|chroot|setacl|removeacl|parsec_chmac|parsec_setaud|parsec_setmac|parsec_chmac|parsec_capset|parsec_chaud|parsec_fchaud)$ ]];
+		then
+			kernel_event="${key} ${event}"
+		fi
+	fi
+	
+	if [[ "$key" == "-t" ]];
+	then
+		time="${key} ${args[$key]}"
+	fi
+	
+	if [[ "$key" == "-x" ]];
+	then
+		adminid="${key} ${args[$key]}"
+	fi
+	
+   done
+
+   # Если ни один входных параметров не устанавливал чтение определенного журнала (флаги -s или -o), 
+   # то производить поиск событий по (всем) двум журналам.
+   if [[ $subject == 0 ]] && [[ $object == 0 ]];
+   then 
+	subject=1
+	object=1
+   fi
+   ```
+   
+	
+   ### Поиск событий
+	
+   После разбора переданных аргументов и формирования строк-фильтров дял поиска событий по журналам, скрипт начинает поиск событий. 
+   
+   Сначала скрипт формирует список подходящих событий, используя утилиту **kernlog** и записывает результат в файл */home/$player/log/PRIV_kernel.log*:
+	
+   ```
+   sudo kernlog $time $adminid $kernel_event -o '%t %N %u %A' | sort | uniq | awk '/$file_name/' > $kernel_logfile
+   ```
+ 
+   где 
+	- $time - переменная, которая хранит диапазон времени для поиска 
+	- $adminid - переменная, которая хранит имя пользователя, установившего новые правила доступа к файлу/каталогу
+	- $kernel_event - список ивентов для поиска событий в журнале регистрации событий ядра
+	- $file_name - имя файла/каталога для поиска связанных событий
+	- $kernel_logfile - переменная, которая хранит путь к файлу для записи промежуточных резульатов поиска (*/home/$player/log/PRIV_kernel.log*)
+
+  Затем скрипт формирует список подходящих событий, используя утилилиту **userlog** и записывается результат в файл */home/$player/log/PRIV_user.log*:
+	
+  ```
+  sudo userlog $time $adminid $user_event -o '%t %N %u %A' | sort | uniq | awk '/$user/' > $user_logfile
+  ```
+	
+  где
+	- $time - переменная, которая хранит диапазон времени для поиска 
+	- $adminid - переменная, которая хранит имя пользователя, установившего новые правила доступа для субъекта доступа (другого пользователя)
+	- $user_event - список ивентов для поиска событий в журнале регистрации событи пользователя
+	- $user - имя субъекта доступа для поиска связанных событий
+	- $user_logfile - переменная, которая хранит путь к файлу для записи промежуточных резульатов поиска (*/home/$player/log/PRIV_user.log*)
+	
+  Далее файлы сливаются в один **, и записи в нем сортируются по дате. 
+
+  ```
+  # Если поиск проводился по двум журналам
+  if (( $object  == 1 )) && (( $subject == 1 ));
+  then	
+	sort -m $kernel_logfile $user_logfile -o $common_logfile
+	rm $kernel_logfile $user_logfile
+  # Если поиск проводил только по kernlog
+  elif (( $object == 1 ));
+  then
+	echo '' > $common_logfile
+	sort -m $common_logfile $kernel_logfile -o $common_logfile
+	rm $kernel_logfile
+  # Если поиск проводился только по userlog
+  else
+	echo '' > $common_logfile
+	sort -m $common_logfile $user_logfile -o $user_logfile
+	rm $user_logfile
+  fi
+  ```
+	
+  Результат работы программы сохраняется в файле **/home/$player/log/PRIV_$date.log** ($date - дата начала работы скрипта):
+	
+  ![Регистрация событий изменения привилегий](https://user-images.githubusercontent.com/40645030/119988852-313aba80-bfcf-11eb-9244-65756cdfda5d.png)
+   
