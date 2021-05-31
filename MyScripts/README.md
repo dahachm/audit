@@ -506,4 +506,13 @@ $ sudo getfaud /home/admin-1
   Результат работы программы сохраняется в файле **/home/$player/log/PRIV_$date.log** ($date - дата начала работы скрипта):
 	
   ![Регистрация событий изменения привилегий](https://user-images.githubusercontent.com/40645030/119988852-313aba80-bfcf-11eb-9244-65756cdfda5d.png)
+
+  Поиск событий смены прав доступа к каталогу */home/admin-1/tmpdir*:
+	
+  ```
+  $ task_3.sh -o /home/admin-1/tmpdir
+  ```
+  
+  
+  
    
