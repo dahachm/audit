@@ -83,6 +83,7 @@ $ sudo ausearch -k start_process -ui 1000 -c sudo  -i
 
 ## 3. Регистрация событий доступа к файлам
 
+
 ### Установка правил
 
 Добавление правила аудита доступа с помощью команды: 
@@ -105,43 +106,76 @@ $ sudo systemctl restart auditd
 
 ### Просмотр событий
 
-Установим правила аудита событий для каталога */tmpdit* и файла */root/small_file.txt*:
+Просмотр событий, связанных с файлом */root/small_file.txt*.
+
+Установка правила аудита: 
 
 ```
-$ sudo auditctl -w /tmpdit -p arwx
-$ sudo auditctl -w /root/small_file.txt -p aw
+$ sudo auditctl -f /root/small_file.txt -p wa
 ```
 
-Просмотр событий, связанных с файлом */root/small_file.txt*:
+Просмотр событий, связанных с файлом:
+
 ```
 $ sudo ausearch -f /root/small_file.txt -i
 ```
+![адуит файлов](https://user-images.githubusercontent.com/40645030/119447379-7c876b80-bd38-11eb-9765-4296516cc77d.png)
+
 
 Просмотр событий Удаления файла */root/small_file.txt*:
 ```
 $ sudo ausearch -f /root/small_file.txt -c rm -i
 ```
 
-Просмотр событий Изменения прав доступа к каталогу */tmpdir*:
+![адуит файлов Удаление файла](https://user-images.githubusercontent.com/40645030/119447401-84471000-bd38-11eb-8760-ba2fc8473399.png)
 
-![Доступ к директории Изменение прав доступа](https://user-images.githubusercontent.com/40645030/120164819-a1318680-c203-11eb-922a-bda8ef4de6e1.png)
+Добавление правил аудита событий, связанных с каталогом */tmp_dir*
 
-Просмотр событий Просмотр содержимого каталога */tmpdir*:
+```
+$ sudo auditctl -w /tmp_dir -p w -k create_event
+$ sudo auditctl -w /tmp_dir -p a -k chmod_event
+$ sudo auditctl -w /tmp_dir -p r -k read_event
+```
 
-![Доступ к директории Попытка просмотреть содержимое](https://user-images.githubusercontent.com/40645030/120164844-a7bffe00-c203-11eb-9c21-3c51918c15bc.png)
+Просмотр событий Изменения прав доступа к каталогу */tmp_dir*:
 
-Просмотр событий Создание файлов в каталоге */tmpdir*:
+```
+$ sudo ausearch -f /tmp_dir -i -k chmod_event
+```
 
-![Доступ к директории Создание файла](https://user-images.githubusercontent.com/40645030/120164864-ad1d4880-c203-11eb-8ff0-5c6b75da5d67.png)
+![Доступ к директории Изменение прав доступа](https://user-images.githubusercontent.com/40645030/119450195-3cc28300-bd3c-11eb-9e7f-bc879951fca8.png)
 
-Просмотр событий Удаление каталога */tmpdir*:
+Просмотр событий Просмотр содержимого каталога */tmp_dir*:
 
-![Доступ к директории Удаление директории](https://user-images.githubusercontent.com/40645030/120164890-b4dced00-c203-11eb-9b83-47fa50e89b16.png)
+```
+$ sudo ausearch -f /tmp_dir -i -k read_event
+```
 
-Просмотр событий Достпупа к каталогу */tmpdir* пользователя *admin-1*:
+![Доступ к директории Попытка просмотреть содержимое](https://user-images.githubusercontent.com/40645030/119450229-45b35480-bd3c-11eb-9402-dace2ad7b77d.png)
 
-![Доступ к директории Доступ конкретного пользователя](https://user-images.githubusercontent.com/40645030/120164920-bc9c9180-c203-11eb-9a6b-e90ed4385e02.png)
+Просмотр событий Создание файлов в каталоге */tmp_dir*:
 
+```
+$ sudo ausearch -f /tmp_dir -i -k create_event 
+```
+
+![Доступ к директории Создание файла](https://user-images.githubusercontent.com/40645030/119450277-5237ad00-bd3c-11eb-8c12-0bf733a9bbd9.png)
+
+Просмотр событий Удаление каталога */tmp_dir*:
+
+```
+$ sudo ausearch -f /tmp_dir -i -c rm
+```
+
+![Доступ к директории Удаление директории](https://user-images.githubusercontent.com/40645030/119448779-76928a00-bd3a-11eb-8243-e3fc63fd73fd.png)
+
+Просмотр событий Достпупа к каталогу */tmp_dir* пользователя *admin-1* (uid == 1000):
+
+```
+$ sudo ausearch -f /tmp_dir -i -ui 1000
+```
+
+![Доступ к директории Доступ конкретного пользователя](https://user-images.githubusercontent.com/40645030/119448846-8ca04a80-bd3a-11eb-8593-bcefae293e57.png)
 
 ## 4. Регистрация событий доступа к дополнительным (внешним, сетевым и др.) устройствам
 
