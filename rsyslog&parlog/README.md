@@ -299,10 +299,6 @@ $ sudo kernlog -e connect | grep firefox
 
 ![nslookup ](https://user-images.githubusercontent.com/40645030/119459176-215c7580-bd46-11eb-8dfa-33f7f7accad3.png)
 
-Либо подключении по ssh:
-
-![kernlog SSH](https://user-images.githubusercontent.com/40645030/119459194-24effc80-bd46-11eb-91a2-b8048ae1a804.png)
-
 ## 5. Регистрация событий изменения полномочий субъектов доступа
 
 Для регистрации событий изменения полномочий субъектов доступа, необходимо установить следующие правила Политики аудита подсистемы PARSEC 
