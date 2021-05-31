@@ -18,7 +18,8 @@
     $ sudo aureport --login
     ```
     
-    ![aureport -au](https://user-images.githubusercontent.com/40645030/119327376-91f28c00-bc8b-11eb-81a0-3fb561889fdf.png)
+    ![aureport --login](https://user-images.githubusercontent.com/40645030/120147453-56a60f00-c1ef-11eb-8f1a-44a88cb47ea2.png)
+
 
 3) События выключения и запуска системы
     
@@ -133,8 +134,9 @@ $ sudo ausearch -f /root/small_file.txt -c rm -i
 
 ## 4. Регистрация событий доступа к дополнительным (внешним, сетевым и др.) устройствам
 
-???
+[Дополняется]
 
 ## 5. Регистрация событий изменения полномочий субъектов доступа
-???
+
+[Дополняется]
 
