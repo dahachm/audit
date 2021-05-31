@@ -20,12 +20,7 @@
    $ cat /var/log/auth.log | grep '(fly-dm:auth):'
    ```
    
-   Здесь видим регистрацию двух возможных событий: введен неизвестный (незарегистрированный) логин или неверный пароль.
-   В зеленом прямоугольнике - события попытки входа под неизвестным системе логином *asmin-1*.
-   В розовом прямоугольнике - событие попытки ввода неверное пароля для пользователя *guest*.
-   
-   ![fly-dm auth failure](https://user-images.githubusercontent.com/40645030/119470270-da27b200-bd50-11eb-9b2d-06490851a4f9.png)
-   
+   ![Регистрация неуспешного ввода пароля fly-dm](https://user-images.githubusercontent.com/40645030/120184384-971a8280-c219-11eb-833e-7b1806591c63.png)
    
 2) Неверный пароль при попытке разблокировать рабочий стол fly-wm
    
@@ -33,8 +28,9 @@
    $ cat /var/log/auth.log | grep '(fly-wm:auth):'
    ```
    
-   ![fly-wm auth failure](https://user-images.githubusercontent.com/40645030/119470542-1e1ab700-bd51-11eb-8604-6fa178eb65a1.png)
+   ![Регистрация неуспешного ввода пароля fly-wm](https://user-images.githubusercontent.com/40645030/120184529-be714f80-c219-11eb-8b9e-4d7eaa344a4d.png)
 
+   
 3) Подключения через ssh
    
    Успешные:
@@ -48,12 +44,16 @@
    Неуспешные:
    
    ```
-   $ cat /var/log/auth.log | grep 'sshd:auth):'
+   $ cat /var/log/auth.log | grep '(sshd:auth):'
    ```
    
    На этом изображении видно, что было предпринято 3 неуспешных попытки входа для пользователя *astra* с адреса *192.168.190.125*. Не удалось пройти аутентификацию, так как пользователь *astra*  не зарегистрирован в системе.
    
    ![ssh auth fail](https://user-images.githubusercontent.com/40645030/119471970-78684780-bd52-11eb-9db3-d13b28315cf7.png)
+
+   На другом примере видим, что было была попытка входа под именем пользователя *admin-1* с адреса *192.168.190.125*. Не удалост пройти аутентификацию, так как 3 раза подряд был введен неверный пароль.
+   
+   ![Регистрация неуспешного ввода пароля ssh](https://user-images.githubusercontent.com/40645030/120185446-e0b79d00-c21a-11eb-9544-88334658e585.png)
 
 4) Выполнение команд от имени другого пользователя (su)
    
@@ -67,19 +67,31 @@
    Неуспешные:
    
    ```
-   $ cat /var/log/auth.log | grep 'FAILED su for'
+   $ cat /var/log/auth.log | grep '(su:auth):'
    ```
    
-   ![failed su](https://user-images.githubusercontent.com/40645030/119496262-fd138f80-bd6b-11eb-8953-9a556dabf387.png)
+   ![Регистрация неуспешного ввода пароля su](https://user-images.githubusercontent.com/40645030/120185483-ef05b900-c21a-11eb-9d43-1ce351374e5e.png)
 
-   
+
+
 5) Выволнение sudo команд
+   
+   Успешные:
    
    ```
    $ cat /var/log/auth.log | grep '(sudo:session)' 
    ```
    
    ![sudo session](https://user-images.githubusercontent.com/40645030/119496694-6c897f00-bd6c-11eb-9bad-c271c9dd47bb.png)
+   
+   Неуспешные:
+   
+   ```
+   $ cat /var/log/auth.log | grep '(sudo:auth):' 
+   ```
+   
+   ![Регистрация неуспешного ввода пароля sudo](https://user-images.githubusercontent.com/40645030/120185860-6b989780-c21b-11eb-8856-cb8b868f268d.png)
+   
 
 6) Регистрация событий запуска системы
    
@@ -95,6 +107,32 @@
    
    ![system start](https://user-images.githubusercontent.com/40645030/119498576-714f3280-bd6e-11eb-9b0a-c33415322ce3.png)
 
+***
+Для включения регистрации в журнале дополнительных сообщений о неправильно введенном пароле при входе в систему требуется:
+   
+   1) установить пакет libpam-addlog
+      
+      ```
+      $ sudp apt install libpam-addlog
+      ```
+       
+   2) создать файл **/usr/share/pam-configs/addlog** со следующим содержимым:
+      
+      ```
+      Name: Add log
+      Default: yes
+      Priority: 100
+      Auth-Type: Primary
+      Auth: optional pam_addlog.so authtok
+      Auth-Initial: optional pam_addlog.so authtok
+      ```
+      
+   3) выполнить следующую команду:
+      
+      ```
+      $ sudo pam-auth-update
+      ```
+***   
    
 ## 2. Регистрация событий запуска и завершения программ
 
